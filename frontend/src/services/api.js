@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://career-guidance-backend-28ip.onrender.com/api';
 
 // Create axios instance
 const api = axios.create({
@@ -40,8 +40,7 @@ api.interceptors.response.use(
 export const authAPI = {
   register: (userData) => api.post('/auth/register', userData),
   login: (credentials) => api.post('/auth/login', credentials),
-  getProfile: () => api.get('/auth/me'),
-  // FIXED: Send token as JSON object (not plain text)
+  getProfile: () => api.get('/auth/profile'), // FIXED: Changed from '/me' to '/profile'
   verifyEmail: (token) => {
     console.log('🔗 Sending token to backend:', token);
     return api.post('/auth/verify-email', { token });
