@@ -1,9 +1,16 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const publicRoutes = require('./routes/public');
+
 // Load environment variables
 dotenv.config();
+
+const app = express();
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -13,16 +20,10 @@ const institutionRoutes = require('./routes/institutions');
 const applicationRoutes = require('./routes/applications');
 const jobRoutes = require('./routes/jobs');
 const companyRoutes = require('./routes/companies');
-
-const app = express();
-
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use('/api', publicRoutes);
+const publicRoutes = require('./routes/public');
 
 // Routes
+app.use('/api', publicRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/students', studentRoutes);
@@ -33,8 +34,8 @@ app.use('/api/companies', companyRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     message: 'Career Guidance API is running!',
     timestamp: new Date().toISOString()
   });
@@ -48,7 +49,7 @@ app.use('*', (req, res) => {
 // Error handling middleware
 app.use((error, req, res, next) => {
   console.error('Error:', error);
-  res.status(500).json({ 
+  res.status(500).json({
     error: 'Internal server error',
     message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
   });
@@ -61,8 +62,3 @@ app.listen(PORT, () => {
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
 });
-
-
-
-// Add this after other middleware, before protected routes
-app.use('/api', publicRoutes);
