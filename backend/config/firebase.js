@@ -8,6 +8,11 @@ try {
   // Check if we're in production (Render) with environment variables
   if (process.env.FIREBASE_PRIVATE_KEY) {
     console.log('📁 Using environment variables for Firebase...');
+    console.log('🔑 FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID);
+    console.log('🔑 FIREBASE_PRIVATE_KEY exists:', !!process.env.FIREBASE_PRIVATE_KEY);
+    console.log('🔑 FIREBASE_PRIVATE_KEY length:', process.env.FIREBASE_PRIVATE_KEY?.length);
+    console.log('🔑 FIREBASE_CLIENT_EMAIL:', process.env.FIREBASE_CLIENT_EMAIL);
+    
     serviceAccount = {
       type: "service_account",
       project_id: process.env.FIREBASE_PROJECT_ID || "careerguidanceplatform-14ca1",
