@@ -4,10 +4,10 @@ const {
   register, 
   login, 
   verifyEmail, 
+  resendVerification,
   forgotPassword, 
   resetPassword, 
-  getProfile,
-  devVerifyEmail 
+  getProfile
 } = require('../controllers/authController');
 const { authenticate } = require('../middleware/auth');
 
@@ -29,11 +29,9 @@ const loginValidation = [
 router.post('/register', registerValidation, register);
 router.post('/login', loginValidation, login);
 router.post('/verify-email', verifyEmail);
+router.post('/resend-verification', resendVerification);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
-router.get('/me', authenticate, getProfile);
-
-// Development-only route for manual email verification
-//router.post('/dev-verify-email', devVerifyEmail);
+router.get('/profile', authenticate, getProfile); // Changed from '/me' to '/profile'
 
 module.exports = router;

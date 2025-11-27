@@ -36,7 +36,10 @@ import {
   ListItemIcon,
   Badge,
   Tabs,
-  Tab
+  Tab,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
 import { 
   Delete as DeleteIcon, 
@@ -49,7 +52,10 @@ import {
   Business as BusinessIcon,
   Settings as SettingsIcon,
   Save as SaveIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  Work as WorkIcon,
+  ContactMail as ContactMailIcon,
+  ExpandMore as ExpandMoreIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { companiesAPI, studentsAPI, institutionsAPI, adminAPI } from '../services/api';
@@ -58,13 +64,33 @@ const Profile = () => {
   const { currentUser, fetchUserProfile } = useAuth();
   const [formData, setFormData] = useState({});
   const [academicRecords, setAcademicRecords] = useState([]);
+  const [workExperience, setWorkExperience] = useState([]);
+  const [references, setReferences] = useState([]);
   const [newSubject, setNewSubject] = useState({ name: '', grade: '', credits: '', type: 'core' });
+  const [newWork, setNewWork] = useState({ 
+    company: '', 
+    position: '', 
+    duration: '', 
+    description: '', 
+    startDate: '', 
+    endDate: '', 
+    currentlyWorking: false 
+  });
+  const [newReference, setNewReference] = useState({ 
+    name: '', 
+    position: '', 
+    company: '', 
+    email: '', 
+    phone: '', 
+    relationship: '' 
+  });
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [gpaDialogOpen, setGpaDialogOpen] = useState(false);
   const [gpaInfo, setGpaInfo] = useState({ gpa: 0, totalCredits: 0 });
   const [adminTab, setAdminTab] = useState(0);
+  const [studentTab, setStudentTab] = useState(0);
 
   // Admin specific states
   const [adminSettings, setAdminSettings] = useState({
@@ -97,6 +123,8 @@ const Profile = () => {
           education: currentUser.profile?.education || {},
         });
         setAcademicRecords(currentUser.profile?.education?.academicRecords || []);
+        setWorkExperience(currentUser.profile?.workExperience || []);
+        setReferences(currentUser.profile?.references || []);
         
         // Set GPA info if available
         if (currentUser.profile?.education) {
@@ -181,6 +209,7 @@ const Profile = () => {
     handleAdminSettingChange(section, field, event.target.checked);
   };
 
+  // Academic Records Functions
   const addAcademicRecord = () => {
     if (newSubject.name && newSubject.grade && newSubject.credits) {
       setAcademicRecords(prev => [...prev, { ...newSubject, id: Date.now() }]);
@@ -190,6 +219,45 @@ const Profile = () => {
 
   const removeAcademicRecord = (id) => {
     setAcademicRecords(prev => prev.filter(record => record.id !== id));
+  };
+
+  // Work Experience Functions
+  const addWorkExperience = () => {
+    if (newWork.company && newWork.position && newWork.duration) {
+      setWorkExperience(prev => [...prev, { ...newWork, id: Date.now() }]);
+      setNewWork({ 
+        company: '', 
+        position: '', 
+        duration: '', 
+        description: '', 
+        startDate: '', 
+        endDate: '', 
+        currentlyWorking: false 
+      });
+    }
+  };
+
+  const removeWorkExperience = (id) => {
+    setWorkExperience(prev => prev.filter(work => work.id !== id));
+  };
+
+  // References Functions
+  const addReference = () => {
+    if (newReference.name && newReference.position && newReference.email) {
+      setReferences(prev => [...prev, { ...newReference, id: Date.now() }]);
+      setNewReference({ 
+        name: '', 
+        position: '', 
+        company: '', 
+        email: '', 
+        phone: '', 
+        relationship: '' 
+      });
+    }
+  };
+
+  const removeReference = (id) => {
+    setReferences(prev => prev.filter(ref => ref.id !== id));
   };
 
   const calculateGPA = () => {
@@ -247,7 +315,10 @@ const Profile = () => {
         const gpaData = calculateGPA();
         const studentData = {
           ...formData,
-          academicRecords: academicRecords
+          academicRecords: academicRecords,
+          workExperience: workExperience,
+          references: references,
+          skills: formData.skills || []
         };
         response = await studentsAPI.updateProfile(studentData);
         setGpaInfo(gpaData);
@@ -282,246 +353,550 @@ const Profile = () => {
   };
 
   const renderStudentForm = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Typography variant="h6" gutterBottom>
-          Personal Information
-        </Typography>
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="First Name"
-          name="personalInfo.firstName"
-          value={formData.personalInfo?.firstName || ''}
-          onChange={handleChange}
-          required
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Last Name"
-          name="personalInfo.lastName"
-          value={formData.personalInfo?.lastName || ''}
-          onChange={handleChange}
-          required
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <TextField
-          fullWidth
-          label="Phone"
-          name="personalInfo.phone"
-          value={formData.personalInfo?.phone || ''}
-          onChange={handleChange}
-          required
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <TextField
-          fullWidth
-          label="Address"
-          name="personalInfo.address"
-          multiline
-          rows={2}
-          value={formData.personalInfo?.address || ''}
-          onChange={handleChange}
-          required
-        />
-      </Grid>
+    <Box>
+      <Tabs value={studentTab} onChange={(e, newValue) => setStudentTab(newValue)} sx={{ mb: 3 }}>
+        <Tab icon={<PersonIcon />} label="Personal Info" />
+        <Tab icon={<SchoolIcon />} label="Academic Records" />
+        <Tab icon={<WorkIcon />} label="Work Experience" />
+        <Tab icon={<ContactMailIcon />} label="References" />
+      </Tabs>
 
-      <Grid item xs={12}>
-        <Typography variant="h6" gutterBottom>
-          Education Background
-        </Typography>
-      </Grid>
-      <Grid item xs={12}>
-        <TextField
-          fullWidth
-          label="High School"
-          name="education.highSchool"
-          value={formData.education?.highSchool || ''}
-          onChange={handleChange}
-          required
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          fullWidth
-          label="Graduation Year"
-          name="education.graduationYear"
-          type="number"
-          value={formData.education?.graduationYear || ''}
-          onChange={handleChange}
-          required
-        />
-      </Grid>
-
-      {/* Academic Records Section */}
-      <Grid item xs={12}>
-        <Card variant="outlined">
-          <CardContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6">
-                High School Subjects & Grades
-              </Typography>
-              <Button 
-                startIcon={<SchoolIcon />}
-                onClick={() => setGpaDialogOpen(true)}
-                variant="outlined"
-                size="small"
-              >
-                View GPA
-              </Button>
-            </Box>
-            <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-              Add your high school subjects and grades. Institutions will use this to evaluate your applications.
+      {studentTab === 0 && (
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <Typography variant="h6" gutterBottom>
+              Personal Information
             </Typography>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="First Name"
+              name="personalInfo.firstName"
+              value={formData.personalInfo?.firstName || ''}
+              onChange={handleChange}
+              required
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="Last Name"
+              name="personalInfo.lastName"
+              value={formData.personalInfo?.lastName || ''}
+              onChange={handleChange}
+              required
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Phone"
+              name="personalInfo.phone"
+              value={formData.personalInfo?.phone || ''}
+              onChange={handleChange}
+              required
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Address"
+              name="personalInfo.address"
+              multiline
+              rows={2}
+              value={formData.personalInfo?.address || ''}
+              onChange={handleChange}
+              required
+            />
+          </Grid>
 
-            {/* Add New Subject Form */}
-            <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
-              <Grid item xs={12} sm={3}>
-                <TextField
-                  fullWidth
-                  label="Subject Name"
-                  value={newSubject.name}
-                  onChange={(e) => setNewSubject(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="e.g., Mathematics"
-                />
-              </Grid>
-              <Grid item xs={12} sm={2}>
-                <TextField
-                  fullWidth
-                  label="Grade"
-                  value={newSubject.grade}
-                  onChange={(e) => setNewSubject(prev => ({ ...prev, grade: e.target.value }))}
-                  placeholder="e.g., A, B, 85%"
-                />
-              </Grid>
-              <Grid item xs={12} sm={2}>
-                <TextField
-                  fullWidth
-                  label="Credits"
-                  type="number"
-                  value={newSubject.credits}
-                  onChange={(e) => setNewSubject(prev => ({ ...prev, credits: e.target.value }))}
-                  placeholder="e.g., 4"
-                />
-              </Grid>
-              <Grid item xs={12} sm={3}>
-                <FormControl fullWidth>
-                  <InputLabel>Type</InputLabel>
-                  <Select
-                    value={newSubject.type}
-                    label="Type"
-                    onChange={(e) => setNewSubject(prev => ({ ...prev, type: e.target.value }))}
-                  >
-                    <MenuItem value="core">Core Subject</MenuItem>
-                    <MenuItem value="elective">Elective</MenuItem>
-                    <MenuItem value="honors">Honors/AP</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={2}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<AddIcon />}
-                  onClick={addAcademicRecord}
-                  disabled={!newSubject.name || !newSubject.grade || !newSubject.credits}
-                >
-                  Add
-                </Button>
-              </Grid>
-            </Grid>
-
-            {/* Subjects Table */}
-            {academicRecords.length > 0 ? (
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell><strong>Subject</strong></TableCell>
-                      <TableCell><strong>Grade</strong></TableCell>
-                      <TableCell><strong>Credits</strong></TableCell>
-                      <TableCell><strong>Type</strong></TableCell>
-                      <TableCell><strong>Action</strong></TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {academicRecords.map((record) => (
-                      <TableRow key={record.id}>
-                        <TableCell>{record.name}</TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={record.grade} 
-                            color={
-                              record.grade.includes('A') || parseInt(record.grade) >= 80 ? 'success' :
-                              record.grade.includes('B') || parseInt(record.grade) >= 70 ? 'warning' : 'error'
-                            }
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell>{record.credits}</TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={record.type} 
-                            variant="outlined"
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => removeAcademicRecord(record.id)}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            ) : (
-              <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 2 }}>
-                No subjects added yet. Add your high school subjects to help institutions evaluate your application.
-              </Typography>
-            )}
-          </CardContent>
-        </Card>
-      </Grid>
-
-      {/* Academic Summary */}
-      {academicRecords.length > 0 && (
-        <Grid item xs={12}>
-          <Card sx={{ backgroundColor: '#f5f5f5' }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Academic Summary
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                <Typography variant="body2">
-                  <strong>Total Subjects:</strong> {academicRecords.length}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Total Credits:</strong> {calculateGPA().totalCredits}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Calculated GPA:</strong> {calculateGPA().gpa.toFixed(2)}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Core Subjects:</strong> {academicRecords.filter(r => r.type === 'core').length}
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
+          <Grid item xs={12}>
+            <Typography variant="h6" gutterBottom>
+              Education Background
+            </Typography>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="University"
+              name="education.university"
+              value={formData.education?.university || ''}
+              onChange={handleChange}
+              placeholder="e.g., University of Example"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="High School"
+              name="education.highSchool"
+              value={formData.education?.highSchool || ''}
+              onChange={handleChange}
+              required
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="Graduation Year"
+              name="education.graduationYear"
+              type="number"
+              value={formData.education?.graduationYear || ''}
+              onChange={handleChange}
+              required
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth>
+              <InputLabel>Degree Level</InputLabel>
+              <Select
+                name="education.degreeLevel"
+                value={formData.education?.degreeLevel || ''}
+                label="Degree Level"
+                onChange={handleChange}
+              >
+                <MenuItem value="high_school">High School</MenuItem>
+                <MenuItem value="diploma">Diploma</MenuItem>
+                <MenuItem value="bachelors">Bachelor's Degree</MenuItem>
+                <MenuItem value="masters">Master's Degree</MenuItem>
+                <MenuItem value="phd">PhD</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
         </Grid>
       )}
-    </Grid>
+
+      {studentTab === 1 && (
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <Card variant="outlined">
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6">
+                    High School Subjects & Grades
+                  </Typography>
+                  <Button 
+                    startIcon={<SchoolIcon />}
+                    onClick={() => setGpaDialogOpen(true)}
+                    variant="outlined"
+                    size="small"
+                  >
+                    View GPA
+                  </Button>
+                </Box>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                  Add your high school subjects and grades. Institutions and companies will use this to evaluate your applications.
+                </Typography>
+
+                {/* Add New Subject Form */}
+                <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
+                  <Grid item xs={12} sm={3}>
+                    <TextField
+                      fullWidth
+                      label="Subject Name"
+                      value={newSubject.name}
+                      onChange={(e) => setNewSubject(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="e.g., Mathematics"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={2}>
+                    <TextField
+                      fullWidth
+                      label="Grade"
+                      value={newSubject.grade}
+                      onChange={(e) => setNewSubject(prev => ({ ...prev, grade: e.target.value }))}
+                      placeholder="e.g., A, B, 85%"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={2}>
+                    <TextField
+                      fullWidth
+                      label="Credits"
+                      type="number"
+                      value={newSubject.credits}
+                      onChange={(e) => setNewSubject(prev => ({ ...prev, credits: e.target.value }))}
+                      placeholder="e.g., 4"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={3}>
+                    <FormControl fullWidth>
+                      <InputLabel>Type</InputLabel>
+                      <Select
+                        value={newSubject.type}
+                        label="Type"
+                        onChange={(e) => setNewSubject(prev => ({ ...prev, type: e.target.value }))}
+                      >
+                        <MenuItem value="core">Core Subject</MenuItem>
+                        <MenuItem value="elective">Elective</MenuItem>
+                        <MenuItem value="honors">Honors/AP</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={2}>
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      startIcon={<AddIcon />}
+                      onClick={addAcademicRecord}
+                      disabled={!newSubject.name || !newSubject.grade || !newSubject.credits}
+                    >
+                      Add
+                    </Button>
+                  </Grid>
+                </Grid>
+
+                {/* Subjects Table */}
+                {academicRecords.length > 0 ? (
+                  <TableContainer component={Paper} variant="outlined">
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell><strong>Subject</strong></TableCell>
+                          <TableCell><strong>Grade</strong></TableCell>
+                          <TableCell><strong>Credits</strong></TableCell>
+                          <TableCell><strong>Type</strong></TableCell>
+                          <TableCell><strong>Action</strong></TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {academicRecords.map((record) => (
+                          <TableRow key={record.id}>
+                            <TableCell>{record.name}</TableCell>
+                            <TableCell>
+                              <Chip 
+                                label={record.grade} 
+                                color={
+                                  record.grade.includes('A') || parseInt(record.grade) >= 80 ? 'success' :
+                                  record.grade.includes('B') || parseInt(record.grade) >= 70 ? 'warning' : 'error'
+                                }
+                                size="small"
+                              />
+                            </TableCell>
+                            <TableCell>{record.credits}</TableCell>
+                            <TableCell>
+                              <Chip 
+                                label={record.type} 
+                                variant="outlined"
+                                size="small"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => removeAcademicRecord(record.id)}
+                              >
+                                <DeleteIcon />
+                              </IconButton>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                ) : (
+                  <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 2 }}>
+                    No subjects added yet. Add your high school subjects to help institutions and companies evaluate your application.
+                  </Typography>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Academic Summary */}
+          {academicRecords.length > 0 && (
+            <Grid item xs={12}>
+              <Card sx={{ backgroundColor: '#f5f5f5' }}>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Academic Summary
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                    <Typography variant="body2">
+                      <strong>Total Subjects:</strong> {academicRecords.length}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Total Credits:</strong> {calculateGPA().totalCredits}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Calculated GPA:</strong> {calculateGPA().gpa.toFixed(2)}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Core Subjects:</strong> {academicRecords.filter(r => r.type === 'core').length}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          )}
+        </Grid>
+      )}
+
+      {studentTab === 2 && (
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <Card variant="outlined">
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Work Experience
+                </Typography>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                  Add your work experience to strengthen your job applications.
+                </Typography>
+
+                {/* Add Work Experience Form */}
+                <Grid container spacing={2} sx={{ mb: 2 }}>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Company"
+                      value={newWork.company}
+                      onChange={(e) => setNewWork(prev => ({ ...prev, company: e.target.value }))}
+                      placeholder="e.g., Google Inc."
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Position"
+                      value={newWork.position}
+                      onChange={(e) => setNewWork(prev => ({ ...prev, position: e.target.value }))}
+                      placeholder="e.g., Software Engineer Intern"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      fullWidth
+                      label="Duration (months)"
+                      type="number"
+                      value={newWork.duration}
+                      onChange={(e) => setNewWork(prev => ({ ...prev, duration: e.target.value }))}
+                      placeholder="e.g., 6"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      fullWidth
+                      label="Start Date"
+                      type="date"
+                      value={newWork.startDate}
+                      onChange={(e) => setNewWork(prev => ({ ...prev, startDate: e.target.value }))}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      fullWidth
+                      label="End Date"
+                      type="date"
+                      value={newWork.endDate}
+                      onChange={(e) => setNewWork(prev => ({ ...prev, endDate: e.target.value }))}
+                      InputLabelProps={{ shrink: true }}
+                      disabled={newWork.currentlyWorking}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Job Description"
+                      multiline
+                      rows={3}
+                      value={newWork.description}
+                      onChange={(e) => setNewWork(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Describe your responsibilities and achievements..."
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={newWork.currentlyWorking}
+                          onChange={(e) => setNewWork(prev => ({ ...prev, currentlyWorking: e.target.checked }))}
+                        />
+                      }
+                      label="I currently work here"
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Button
+                      variant="outlined"
+                      startIcon={<AddIcon />}
+                      onClick={addWorkExperience}
+                      disabled={!newWork.company || !newWork.position || !newWork.duration}
+                    >
+                      Add Work Experience
+                    </Button>
+                  </Grid>
+                </Grid>
+
+                {/* Work Experience List */}
+                {workExperience.length > 0 ? (
+                  <Box>
+                    {workExperience.map((work) => (
+                      <Card key={work.id} variant="outlined" sx={{ mb: 2 }}>
+                        <CardContent>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <Box>
+                              <Typography variant="h6">{work.position}</Typography>
+                              <Typography variant="subtitle1" color="primary">
+                                {work.company}
+                              </Typography>
+                              <Typography variant="body2" color="textSecondary">
+                                {work.startDate} - {work.currentlyWorking ? 'Present' : work.endDate} 
+                                {work.duration && ` (${work.duration} months)`}
+                              </Typography>
+                              <Typography variant="body2" sx={{ mt: 1 }}>
+                                {work.description}
+                              </Typography>
+                            </Box>
+                            <IconButton
+                              color="error"
+                              onClick={() => removeWorkExperience(work.id)}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </Box>
+                ) : (
+                  <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 2 }}>
+                    No work experience added yet. Add your work experience to make your profile more attractive to employers.
+                  </Typography>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      )}
+
+      {studentTab === 3 && (
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <Card variant="outlined">
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Professional References
+                </Typography>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                  Add professional references that employers can contact.
+                </Typography>
+
+                {/* Add Reference Form */}
+                <Grid container spacing={2} sx={{ mb: 2 }}>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Reference Name"
+                      value={newReference.name}
+                      onChange={(e) => setNewReference(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="e.g., John Smith"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Position"
+                      value={newReference.position}
+                      onChange={(e) => setNewReference(prev => ({ ...prev, position: e.target.value }))}
+                      placeholder="e.g., Senior Manager"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Company"
+                      value={newReference.company}
+                      onChange={(e) => setNewReference(prev => ({ ...prev, company: e.target.value }))}
+                      placeholder="e.g., Microsoft Corporation"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Email"
+                      type="email"
+                      value={newReference.email}
+                      onChange={(e) => setNewReference(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="e.g., john.smith@company.com"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Phone"
+                      value={newReference.phone}
+                      onChange={(e) => setNewReference(prev => ({ ...prev, phone: e.target.value }))}
+                      placeholder="e.g., +1 (555) 123-4567"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Relationship"
+                      value={newReference.relationship}
+                      onChange={(e) => setNewReference(prev => ({ ...prev, relationship: e.target.value }))}
+                      placeholder="e.g., Former Manager, Professor, etc."
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Button
+                      variant="outlined"
+                      startIcon={<AddIcon />}
+                      onClick={addReference}
+                      disabled={!newReference.name || !newReference.position || !newReference.email}
+                    >
+                      Add Reference
+                    </Button>
+                  </Grid>
+                </Grid>
+
+                {/* References List */}
+                {references.length > 0 ? (
+                  <Box>
+                    {references.map((ref) => (
+                      <Card key={ref.id} variant="outlined" sx={{ mb: 2 }}>
+                        <CardContent>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <Box>
+                              <Typography variant="h6">{ref.name}</Typography>
+                              <Typography variant="subtitle1" color="primary">
+                                {ref.position} at {ref.company}
+                              </Typography>
+                              <Typography variant="body2" color="textSecondary">
+                                Relationship: {ref.relationship}
+                              </Typography>
+                              <Typography variant="body2">
+                                Email: {ref.email} | Phone: {ref.phone}
+                              </Typography>
+                            </Box>
+                            <IconButton
+                              color="error"
+                              onClick={() => removeReference(ref.id)}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </Box>
+                ) : (
+                  <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 2 }}>
+                    No references added yet. Add professional references to strengthen your job applications.
+                  </Typography>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      )}
+    </Box>
   );
+
+  // ... (rest of the code for adminForm, institutionForm, companyForm remains exactly the same as in your original file)
 
   const renderAdminForm = () => (
     <Box>
@@ -770,37 +1145,6 @@ const Profile = () => {
     </Box>
   );
 
-  // GPA Info Dialog
-  const GpaInfoDialog = () => (
-    <Dialog open={gpaDialogOpen} onClose={() => setGpaDialogOpen(false)}>
-      <DialogTitle>GPA Information</DialogTitle>
-      <DialogContent>
-        <Typography variant="body1" gutterBottom>
-          <strong>Your Current GPA:</strong> {gpaInfo.gpa.toFixed(2)}
-        </Typography>
-        <Typography variant="body1" gutterBottom>
-          <strong>Total Credits:</strong> {gpaInfo.totalCredits}
-        </Typography>
-        <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
-          <strong>GPA Calculation:</strong>
-        </Typography>
-        <Typography variant="body2" color="textSecondary">
-          • A / 80-100% = 4.0 points<br/>
-          • B / 70-79% = 3.0 points<br/>
-          • C / 60-69% = 2.0 points<br/>
-          • D / 50-59% = 1.0 points<br/>
-          • F / Below 50% = 0.0 points
-        </Typography>
-        <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-          GPA = Total Grade Points ÷ Total Credits
-        </Typography>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setGpaDialogOpen(false)}>Close</Button>
-      </DialogActions>
-    </Dialog>
-  );
-
   const renderInstitutionForm = () => (
     <Grid container spacing={3}>
       <Grid item xs={12}>
@@ -960,6 +1304,37 @@ const Profile = () => {
         />
       </Grid>
     </Grid>
+  );
+
+  // GPA Info Dialog
+  const GpaInfoDialog = () => (
+    <Dialog open={gpaDialogOpen} onClose={() => setGpaDialogOpen(false)}>
+      <DialogTitle>GPA Information</DialogTitle>
+      <DialogContent>
+        <Typography variant="body1" gutterBottom>
+          <strong>Your Current GPA:</strong> {gpaInfo.gpa.toFixed(2)}
+        </Typography>
+        <Typography variant="body1" gutterBottom>
+          <strong>Total Credits:</strong> {gpaInfo.totalCredits}
+        </Typography>
+        <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
+          <strong>GPA Calculation:</strong>
+        </Typography>
+        <Typography variant="body2" color="textSecondary">
+          • A / 80-100% = 4.0 points<br/>
+          • B / 70-79% = 3.0 points<br/>
+          • C / 60-69% = 2.0 points<br/>
+          • D / 50-59% = 1.0 points<br/>
+          • F / Below 50% = 0.0 points
+        </Typography>
+        <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+          GPA = Total Grade Points ÷ Total Credits
+        </Typography>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setGpaDialogOpen(false)}>Close</Button>
+      </DialogActions>
+    </Dialog>
   );
 
   const renderForm = () => {

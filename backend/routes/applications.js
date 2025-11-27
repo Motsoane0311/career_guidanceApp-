@@ -6,6 +6,7 @@ const {
   updateApplicationStatus,
   getStudentApplications
 } = require('../controllers/applicationController');
+const { applyForJob } = require('../controllers/jobController');
 const { authenticate, authorize, requireEmailVerification } = require('../middleware/auth');
 
 const router = express.Router();
@@ -15,11 +16,19 @@ router.get('/course/:courseId', authenticate, getCourseApplications);
 router.get('/:applicationId', authenticate, getApplicationById);
 
 // Student routes
-router.post('/apply/course',  // CHANGED FROM '/apply' TO '/apply/course'
+router.post('/apply/course',
   authenticate, 
   authorize('student'), 
   requireEmailVerification, 
   applyForCourse
+);
+
+// Job application route
+router.post('/apply/job/:jobId',
+  authenticate,
+  authorize('student'),
+  requireEmailVerification,
+  applyForJob
 );
 
 router.get('/student/my-applications',

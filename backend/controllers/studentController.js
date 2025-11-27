@@ -3,7 +3,14 @@ const { db } = require('../config/firebase');
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { personalInfo, education, academicRecords } = req.body;
+    const { 
+      personalInfo, 
+      education, 
+      academicRecords, 
+      workExperience, 
+      references, 
+      skills 
+    } = req.body;
 
     // Create update data with only provided fields
     const updateData = {
@@ -13,6 +20,9 @@ exports.updateProfile = async (req, res) => {
 
     if (personalInfo !== undefined) updateData.personalInfo = personalInfo;
     if (education !== undefined) updateData.education = education;
+    if (workExperience !== undefined) updateData.workExperience = workExperience;
+    if (references !== undefined) updateData.references = references;
+    if (skills !== undefined) updateData.skills = skills;
     
     // Calculate GPA and process academic records if provided
     if (academicRecords && Array.isArray(academicRecords)) {
@@ -29,7 +39,8 @@ exports.updateProfile = async (req, res) => {
 
     // Also update users collection
     await db.collection('users').doc(userId).update({
-      profileCompleted: true
+      profileCompleted: true,
+      updatedAt: new Date()
     });
 
     res.json({ 
@@ -164,6 +175,82 @@ exports.evaluateStudentForCourse = async (studentId, courseId) => {
     return evaluation;
   } catch (error) {
     console.error('Evaluation error:', error);
+    return { eligible: false, reason: 'Evaluation error' };
+  }
+};
+
+// Enhanced student evaluation for jobs
+exports.evaluateStudentForJob = async (studentId, jobId) => {
+  try {
+    const studentDoc = await db.collection('students').doc(studentId).get();
+    const jobDoc = await db.collection('jobs').doc(jobId).get();
+    
+    if (!studentDoc.exists || !jobDoc.exists) {
+      return { eligible: false, reason: 'Student or job not found' };
+    }
+
+    const student = studentDoc.data();
+    const job = jobDoc.data();
+    const requirements = job.requirements || {};
+
+    const evaluation = {
+      eligible: true,
+      matchScore: 0,
+      academicMatch: {},
+      experienceMatch: {},
+      skillMatch: {},
+      missingRequirements: []
+    };
+
+    // Academic Evaluation
+    if (requirements.minGPA) {
+      const studentGPA = student.education?.gpa || 0;
+      if (studentGPA >= requirements.minGPA) {
+        evaluation.matchScore += 25;
+        evaluation.academicMatch.gpa = { required: requirements.minGPA, actual: studentGPA, met: true };
+      } else {
+        evaluation.academicMatch.gpa = { required: requirements.minGPA, actual: studentGPA, met: false };
+        evaluation.missingRequirements.push(`GPA below requirement (${studentGPA} < ${requirements.minGPA})`);
+      }
+    }
+
+    // Experience Evaluation
+    if (requirements.minExperience > 0) {
+      const studentExperience = student.workExperience || [];
+      const totalExperience = studentExperience.reduce((total, exp) => {
+        return total + (exp.duration || 0);
+      }, 0);
+      
+      if (totalExperience >= requirements.minExperience) {
+        evaluation.matchScore += 30;
+        evaluation.experienceMatch.years = { required: requirements.minExperience, actual: totalExperience, met: true };
+      } else {
+        evaluation.experienceMatch.years = { required: requirements.minExperience, actual: totalExperience, met: false };
+        evaluation.missingRequirements.push(`Insufficient experience (${totalExperience} < ${requirements.minExperience} years)`);
+      }
+    }
+
+    // Skills Evaluation
+    if (requirements.requiredSkills && requirements.requiredSkills.length > 0) {
+      const studentSkills = student.skills || [];
+      const matchedSkills = requirements.requiredSkills.filter(skill =>
+        studentSkills.some(studentSkill => 
+          studentSkill.toLowerCase().includes(skill.toLowerCase()) ||
+          skill.toLowerCase().includes(studentSkill.toLowerCase())
+        )
+      );
+      
+      if (matchedSkills.length > 0) {
+        evaluation.matchScore += matchedSkills.length * 5;
+        evaluation.skillMatch = { required: requirements.requiredSkills, matched: matchedSkills };
+      }
+    }
+
+    evaluation.matchScore = Math.min(evaluation.matchScore, 100);
+
+    return evaluation;
+  } catch (error) {
+    console.error('Job evaluation error:', error);
     return { eligible: false, reason: 'Evaluation error' };
   }
 };

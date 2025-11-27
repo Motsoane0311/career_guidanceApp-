@@ -1,4 +1,4 @@
-// Job Schema Definition for Firestore
+// Enhanced Job Schema Definition for Firestore
 const JobSchema = {
   collection: 'jobs',
   fields: {
@@ -8,10 +8,27 @@ const JobSchema = {
     requirements: {
       type: 'object',
       fields: {
-        educationLevel: { type: 'string' },
+        // Academic requirements
+        education: {
+          type: 'object',
+          fields: {
+            level: { type: 'string' }, // 'high_school', 'diploma', 'bachelors', 'masters', 'phd'
+            field: { type: 'string' },
+            minGPA: { type: 'number' }
+          }
+        },
+        minGPA: { type: 'number' },
+        requiredCourses: { type: 'array' },
+        universityRequirements: { type: 'object' },
+        
+        // Experience requirements
         minExperience: { type: 'number' },
-        skills: { type: 'array' },
-        certificates: { type: 'array' }
+        requiredSkills: { type: 'array' },
+        certificates: { type: 'array' },
+        
+        // Reference requirements
+        requireReferences: { type: 'boolean', default: false },
+        minReferences: { type: 'number', default: 0 }
       }
     },
     qualifications: { type: 'array', default: [] },

@@ -41,12 +41,17 @@ export const authAPI = {
   register: (userData) => api.post('/auth/register', userData),
   login: (credentials) => api.post('/auth/login', credentials),
   getProfile: () => api.get('/auth/me'),
-  verifyEmail: (token) => api.post('/auth/verify-email', { token }),
+  // FIXED: Send token as JSON object (not plain text)
+  verifyEmail: (token) => {
+    console.log('🔗 Sending token to backend:', token);
+    return api.post('/auth/verify-email', { token });
+  },
+  resendVerification: (email) => api.post('/auth/resend-verification', { email }),
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
   resetPassword: (data) => api.post('/auth/reset-password', data),
 };
 
-// Students API
+// ... rest of your API exports remain the same
 export const studentsAPI = {
   updateProfile: (data) => api.put('/students/profile', data),
   uploadTranscripts: (data) => api.post('/students/transcripts', data),
@@ -54,35 +59,33 @@ export const studentsAPI = {
   getJobApplications: () => api.get('/students/job-applications'),
 };
 
-// Companies API
 export const companiesAPI = {
   updateProfile: (data) => api.put('/companies/profile', data),
   getProfile: () => api.get('/companies/profile'),
   getDashboardStats: () => api.get('/companies/dashboard'),
-  getJobApplicants: (jobId) => api.get(`/companies/jobs/${jobId}/applicants`),
+  getCompanyJobs: () => api.get('/jobs/company'),
+  getJobApplicants: (jobId) => api.get(`/jobs/${jobId}/applicants`),
   updateApplicationStatus: (applicationId, status) =>
     api.put(`/companies/applications/${applicationId}/status`, { status }),
 };
 
-// Jobs API
 export const jobsAPI = {
   getJobs: () => api.get('/jobs'),
   createJob: (data) => api.post('/jobs', data),
-  applyForJob: (jobId) => api.post(`/jobs/${jobId}/apply`),
+  applyForJob: (jobId, data) => api.post(`/applications/apply/job/${jobId}`, data),
   getCompanyJobs: () => api.get('/jobs/company'),
   getJobApplicants: (jobId) => api.get(`/jobs/${jobId}/applicants`),
 };
 
-// Applications API - UPDATED TO MATCH BACKEND
 export const applicationsAPI = {
-  applyForCourse: (data) => api.post('/applications/apply/course', data), // This is now correct
+  applyForCourse: (data) => api.post('/applications/apply/course', data),
+  applyForJob: (jobId, data) => api.post(`/applications/apply/job/${jobId}`, data),
   getCourseApplications: (courseId) => api.get(`/applications/course/${courseId}`),
   getStudentApplications: () => api.get('/applications/student/my-applications'),
   getApplicationById: (applicationId) => api.get(`/applications/${applicationId}`),
   updateApplicationStatus: (applicationId, status) => api.put(`/applications/${applicationId}/status`, { status }),
 };
 
-// Admin API
 export const adminAPI = {
   getDashboardStats: () => api.get('/admin/dashboard'),
   getAllUsers: () => api.get('/admin/users'),
@@ -101,7 +104,6 @@ export const adminAPI = {
   getSystemReports: (params) => api.get('/admin/reports', { params }),
 };
 
-// Institutions API
 export const institutionsAPI = {
   updateProfile: (data) => api.put('/institutions/profile', data),
   addFaculty: (data) => api.post('/institutions/faculties', data),
@@ -113,7 +115,6 @@ export const institutionsAPI = {
   getCourses: () => api.get('/institutions/courses'),
 };
 
-// Public API
 export const publicAPI = {
   getInstitutions: () => api.get('/institutions/public'),
 };

@@ -1,5 +1,6 @@
 const { admin, db } = require('../config/firebase');
 const jwt = require('jsonwebtoken');
+const { validationResult } = require('express-validator');
 
 // Simple token generation
 const generateToken = (userId, email, role) => {
@@ -12,32 +13,37 @@ const generateToken = (userId, email, role) => {
 
 exports.login = async (req, res) => {
   try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
     const { email, password } = req.body;
     console.log('🔐 Login attempt:', email);
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
-
-    // HARDCODED ADMIN LOGIN - This will always work
-    if (email === 'Pago7@gmail.com' && password === 'p123456') {
+    // SIMPLE HARDCODED ADMIN LOGIN - This will always work
+    if (email === 'mohAdmin@gmail.com' && password === '123456') {
       console.log('✅ Admin login detected');
       
       // Check if admin exists in Firestore
       let adminUser = await db.collection('users')
-        .where('email', '==', 'Pago7@gmail.com')
+        .where('email', '==', 'mohAdmin@gmail.com')
         .where('role', '==', 'admin')
         .get();
 
       let adminId;
       
       if (adminUser.empty) {
-        console.log('🆕 Creating admin user...');
-        // Create admin user in Firestore with a simple ID
+        console.log('🆕 Creating admin user in Firestore...');
+        // Create admin user in Firestore
         adminId = 'admin-' + Date.now();
         
         await db.collection('users').doc(adminId).set({
-          email: 'Pago7@gmail.com',
+          email: 'mohAdmin@gmail.com',
           role: 'admin',
           createdAt: new Date(),
           profileCompleted: true,
@@ -46,7 +52,7 @@ exports.login = async (req, res) => {
 
         await db.collection('admins').doc(adminId).set({
           userId: adminId,
-          name: 'Phakiso Motsoane',
+          name: 'System Administrator',
           createdAt: new Date(),
         });
         
@@ -57,11 +63,7 @@ exports.login = async (req, res) => {
       }
 
       // Generate token
-      const token = generateToken(adminId, 'Pago7@gmail.com', 'admin');
-
-      // Get admin profile
-      const adminProfile = await db.collection('admins').doc(adminId).get();
-      const profileData = adminProfile.exists ? adminProfile.data() : { name: 'Phakiso Motsoane' };
+      const token = generateToken(adminId, 'mohAdmin@gmail.com', 'admin');
 
       console.log('✅ Admin login successful');
       
@@ -70,70 +72,64 @@ exports.login = async (req, res) => {
         token,
         user: {
           userId: adminId,
-          email: 'Pago7@gmail.com',
+          email: 'mohAdmin@gmail.com',
           role: 'admin',
           profileCompleted: true,
           emailVerified: true,
-          profile: profileData
+          name: 'System Administrator'
         }
       });
     }
 
-    // REGULAR USER LOGIN - Simplified version
+    // REGULAR USER LOGIN
     console.log('👤 Regular user login attempt');
     
-    try {
-      // Try to find user in Firestore first
-      const users = await db.collection('users')
-        .where('email', '==', email)
-        .get();
+    // Try to find user in Firestore
+    const users = await db.collection('users')
+      .where('email', '==', email)
+      .get();
 
-      if (users.empty) {
-        console.log('❌ User not found in Firestore');
-        return res.status(400).json({ error: 'Invalid email or password' });
-      }
-
-      const userDoc = users.docs[0];
-      const userData = userDoc.data();
-      const userId = userDoc.id;
-
-      console.log('✅ User found:', userData.role);
-
-      // Generate token for regular user
-      const token = generateToken(userId, userData.email, userData.role);
-
-      // Get profile data based on role
-      let profileData = {};
-      if (userData.role === 'student') {
-        const studentDoc = await db.collection('students').doc(userId).get();
-        profileData = studentDoc.exists ? studentDoc.data() : {};
-      } else if (userData.role === 'institution') {
-        const institutionDoc = await db.collection('institutions').doc(userId).get();
-        profileData = institutionDoc.exists ? institutionDoc.data() : {};
-      } else if (userData.role === 'company') {
-        const companyDoc = await db.collection('companies').doc(userId).get();
-        profileData = companyDoc.exists ? companyDoc.data() : {};
-      }
-
-      console.log('✅ Regular user login successful');
-      
-      res.json({
-        message: 'Login successful',
-        token,
-        user: {
-          userId: userId,
-          email: userData.email,
-          role: userData.role,
-          profileCompleted: userData.profileCompleted || false,
-          emailVerified: userData.emailVerified || false,
-          profile: profileData
-        }
-      });
-
-    } catch (error) {
-      console.error('Regular user login error:', error);
+    if (users.empty) {
+      console.log('❌ User not found in Firestore');
       return res.status(400).json({ error: 'Invalid email or password' });
     }
+
+    const userDoc = users.docs[0];
+    const userData = userDoc.data();
+    const userId = userDoc.id;
+
+    console.log('✅ User found:', userData.role);
+
+    // For regular users, just check if they exist (password checking would normally be here)
+    const token = generateToken(userId, userData.email, userData.role);
+
+    // Get profile data based on role
+    let profileData = {};
+    if (userData.role === 'student') {
+      const studentDoc = await db.collection('students').doc(userId).get();
+      profileData = studentDoc.exists ? studentDoc.data() : {};
+    } else if (userData.role === 'institution') {
+      const institutionDoc = await db.collection('institutions').doc(userId).get();
+      profileData = institutionDoc.exists ? institutionDoc.data() : {};
+    } else if (userData.role === 'company') {
+      const companyDoc = await db.collection('companies').doc(userId).get();
+      profileData = companyDoc.exists ? companyDoc.data() : {};
+    }
+
+    console.log('✅ Regular user login successful');
+    
+    res.json({
+      message: 'Login successful',
+      token,
+      user: {
+        userId: userId,
+        email: userData.email,
+        role: userData.role,
+        profileCompleted: userData.profileCompleted || false,
+        emailVerified: userData.emailVerified || false,
+        profile: profileData
+      }
+    });
 
   } catch (error) {
     console.error('Login error:', error);
@@ -143,14 +139,17 @@ exports.login = async (req, res) => {
 
 exports.register = async (req, res) => {
   try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
     const { email, password, role, userData } = req.body;
     console.log('📝 Registration attempt:', email, role);
-
-    // Validate role
-    const allowedRoles = ['student', 'institution', 'company'];
-    if (!allowedRoles.includes(role)) {
-      return res.status(400).json({ error: 'Invalid role' });
-    }
 
     // Check if user already exists
     const existingUser = await db.collection('users')
@@ -170,7 +169,7 @@ exports.register = async (req, res) => {
       role,
       createdAt: new Date(),
       profileCompleted: false,
-      emailVerified: true, // Auto-verify in development
+      emailVerified: true, // Auto-verify for now to simplify
     });
 
     // Create role-specific profile
@@ -207,14 +206,10 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Generate token
-    const token = generateToken(userId, email, role);
-
     console.log('✅ User registered successfully:', email);
 
     res.status(201).json({
       message: 'User registered successfully',
-      token,
       user: {
         userId: userId,
         email: email,
@@ -227,6 +222,67 @@ exports.register = async (req, res) => {
   } catch (error) {
     console.error('Registration error:', error);
     res.status(400).json({ error: error.message });
+  }
+};
+
+exports.verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.body;
+    console.log('📧 Email verification attempt');
+
+    // Simple implementation - just return success
+    res.json({
+      message: 'Email verified successfully (simulated)',
+      verified: true
+    });
+  } catch (error) {
+    console.error('Email verification error:', error);
+    res.status(500).json({ error: 'Email verification failed' });
+  }
+};
+
+exports.resendVerification = async (req, res) => {
+  try {
+    const { email } = req.body;
+    console.log('📧 Resend verification for:', email);
+
+    res.json({
+      message: 'Verification email sent successfully (simulated)',
+      email: email
+    });
+  } catch (error) {
+    console.error('Resend verification error:', error);
+    res.status(500).json({ error: 'Failed to resend verification email' });
+  }
+};
+
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    console.log('🔑 Forgot password for:', email);
+
+    res.json({
+      message: 'Password reset email sent successfully (simulated)',
+      email: email
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ error: 'Failed to process password reset request' });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    console.log('🔑 Reset password with token');
+
+    res.json({
+      message: 'Password reset successfully (simulated)',
+      success: true
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ error: 'Password reset failed' });
   }
 };
 
@@ -268,17 +324,4 @@ exports.getProfile = async (req, res) => {
     console.error('Get profile error:', error);
     res.status(500).json({ error: error.message });
   }
-};
-
-// Simple versions of other auth functions
-exports.verifyEmail = async (req, res) => {
-  res.json({ message: 'Email verification not required', verified: true });
-};
-
-exports.forgotPassword = async (req, res) => {
-  res.json({ message: 'Password reset not implemented in demo' });
-};
-
-exports.resetPassword = async (req, res) => {
-  res.json({ message: 'Password reset not implemented in demo' });
 };

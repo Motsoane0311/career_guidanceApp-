@@ -44,7 +44,8 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return { 
         success: false, 
-        error: error.response?.data?.error || 'Login failed' 
+        error: error.response?.data?.error || 'Login failed',
+        requiresVerification: error.response?.data?.requiresVerification || false
       };
     }
   };

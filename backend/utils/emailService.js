@@ -2,6 +2,7 @@ const nodemailer = require('nodemailer');
 
 // Mock email service for development
 const isEmailEnabled = process.env.EMAIL_ENABLED === 'true';
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 
 let transporter;
 
@@ -30,6 +31,8 @@ if (isEmailEnabled) {
         to: mailOptions.to,
         subject: mailOptions.subject
       });
+      console.log('🔗 Verification URL (for testing):', mailOptions.html?.includes('href="') ? 
+        mailOptions.html.match(/href="([^"]*)"/)[1] : 'No URL found');
       return { messageId: 'mock-message-id' };
     }
   };
@@ -37,7 +40,7 @@ if (isEmailEnabled) {
 
 const sendVerificationEmail = async (email, verificationToken) => {
   try {
-    const verificationUrl = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`;
+    const verificationUrl = `${CLIENT_URL}/verify-email?token=${verificationToken}`;
     
     const mailOptions = {
       from: `"Career Guidance Platform" <${process.env.EMAIL_USER || 'noreply@careerguidance.com'}>`,
@@ -67,7 +70,7 @@ const sendVerificationEmail = async (email, verificationToken) => {
 
     const info = await transporter.sendMail(mailOptions);
     console.log('✅ Verification email sent to:', email);
-    console.log('🔗 Verification token (for testing):', verificationToken);
+    console.log('🔗 Verification URL (for testing):', verificationUrl);
     return true;
   } catch (error) {
     console.error('❌ Error sending verification email:', error);
@@ -78,7 +81,7 @@ const sendVerificationEmail = async (email, verificationToken) => {
 
 const sendPasswordResetEmail = async (email, resetToken) => {
   try {
-    const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
+    const resetUrl = `${CLIENT_URL}/reset-password?token=${resetToken}`;
     
     const mailOptions = {
       from: `"Career Guidance Platform" <${process.env.EMAIL_USER || 'noreply@careerguidance.com'}>`,
@@ -104,7 +107,7 @@ const sendPasswordResetEmail = async (email, resetToken) => {
 
     const info = await transporter.sendMail(mailOptions);
     console.log('✅ Password reset email sent to:', email);
-    console.log('🔗 Reset token (for testing):', resetToken);
+    console.log('🔗 Reset URL (for testing):', resetUrl);
     return true;
   } catch (error) {
     console.error('❌ Error sending password reset email:', error);

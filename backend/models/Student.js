@@ -1,4 +1,4 @@
-// Student Schema Definition for Firestore
+// Enhanced Student Schema Definition for Firestore
 const StudentSchema = {
   collection: 'students',
   fields: {
@@ -18,10 +18,11 @@ const StudentSchema = {
     education: {
       type: 'object',
       fields: {
+        university: { type: 'string' },
         highSchool: { type: 'string' },
         graduationYear: { type: 'number' },
-        grades: { type: 'object' },
         degreeLevel: { type: 'string' }, // 'high_school', 'diploma', 'bachelors', 'masters', 'phd'
+        fieldOfStudy: { type: 'string' },
         academicRecords: {
           type: 'array',
           fields: {
@@ -35,6 +36,30 @@ const StudentSchema = {
         totalCredits: { type: 'number' }
       }
     },
+    workExperience: {
+      type: 'array',
+      fields: {
+        company: { type: 'string' },
+        position: { type: 'string' },
+        duration: { type: 'number' }, // in months
+        description: { type: 'string' },
+        startDate: { type: 'timestamp' },
+        endDate: { type: 'timestamp' },
+        currentlyWorking: { type: 'boolean' }
+      }
+    },
+    references: {
+      type: 'array',
+      fields: {
+        name: { type: 'string' },
+        position: { type: 'string' },
+        company: { type: 'string' },
+        email: { type: 'string' },
+        phone: { type: 'string' },
+        relationship: { type: 'string' }
+      }
+    },
+    skills: { type: 'array', default: [] },
     applications: { type: 'array', default: [] },
     transcripts: { type: 'array', default: [] },
     certificates: { type: 'array', default: [] },

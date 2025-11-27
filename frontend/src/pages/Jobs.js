@@ -21,16 +21,18 @@ import {
 } from '@mui/material';
 import { jobsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import JobApplicationForm from './JobApplicationForm'; // Remove .js extension
 
 const Jobs = () => {
   const { currentUser } = useAuth();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [applyingJobId, setApplyingJobId] = useState(null); // Track which job is being applied to
+  const [applyingJobId, setApplyingJobId] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [selectedJob, setSelectedJob] = useState(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [applicationDialogOpen, setApplicationDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchJobs();
@@ -51,36 +53,28 @@ const Jobs = () => {
     }
   };
 
-  const applyForJob = async (jobId) => {
-    try {
-      setApplyingJobId(jobId); // Set the specific job being applied to
-      setError('');
-      setSuccess('');
-      
-      const response = await jobsAPI.applyForJob(jobId);
-      setSuccess(response.data.message || 'Successfully applied for the job!');
-      setDialogOpen(false);
-      
-      // Refresh jobs to update application status if needed
-      fetchJobs();
-    } catch (err) {
-      console.error('Apply job error:', err);
-      setError(err.response?.data?.error || 'Failed to apply for job. Please try again.');
-    } finally {
-      setApplyingJobId(null); // Reset applying state
-    }
-  };
-
   const openJobDetails = (job) => {
     setSelectedJob(job);
-    setDialogOpen(true);
+    setDetailsDialogOpen(true);
+  };
+
+  const openApplicationForm = (job) => {
+    setSelectedJob(job);
+    setApplicationDialogOpen(true);
   };
 
   const closeDialog = () => {
-    setDialogOpen(false);
+    setDetailsDialogOpen(false);
+    setApplicationDialogOpen(false);
     setSelectedJob(null);
     setError('');
     setSuccess('');
+  };
+
+  const handleApplicationSuccess = (message) => {
+    setSuccess(message);
+    setApplicationDialogOpen(false);
+    fetchJobs();
   };
 
   const getJobTypeColor = (jobType) => {
@@ -195,10 +189,10 @@ const Jobs = () => {
                       <Button
                         variant="contained"
                         size="small"
-                        onClick={() => applyForJob(job.id)}
-                        disabled={applyingJobId === job.id} // Only disable the specific button
+                        onClick={() => openApplicationForm(job)}
+                        disabled={applyingJobId === job.id}
                       >
-                        {applyingJobId === job.id ? 'Applying...' : 'Apply'}
+                        Apply
                       </Button>
                     </Box>
                   </TableCell>
@@ -210,7 +204,7 @@ const Jobs = () => {
       </TableContainer>
 
       {/* Job Details Dialog */}
-      <Dialog open={dialogOpen} onClose={closeDialog} maxWidth="md" fullWidth>
+      <Dialog open={detailsDialogOpen} onClose={closeDialog} maxWidth="md" fullWidth>
         <DialogTitle>
           {selectedJob?.title}
         </DialogTitle>
@@ -253,9 +247,15 @@ const Jobs = () => {
                     Requirements
                   </Typography>
                   <Box sx={{ mb: 2 }}>
-                    {selectedJob.requirements.educationLevel && (
+                    {/* Academic Requirements */}
+                    {selectedJob.requirements.minGPA && (
                       <Typography variant="body2" sx={{ mb: 1 }}>
-                        <strong>Education Level:</strong> {selectedJob.requirements.educationLevel}
+                        <strong>Minimum GPA:</strong> {selectedJob.requirements.minGPA}
+                      </Typography>
+                    )}
+                    {selectedJob.requirements.education?.level && (
+                      <Typography variant="body2" sx={{ mb: 1 }}>
+                        <strong>Education Level:</strong> {selectedJob.requirements.education.level}
                       </Typography>
                     )}
                     {selectedJob.requirements.minExperience !== undefined && (
@@ -263,13 +263,25 @@ const Jobs = () => {
                         <strong>Minimum Experience:</strong> {selectedJob.requirements.minExperience} year(s)
                       </Typography>
                     )}
-                    {selectedJob.requirements.skills && selectedJob.requirements.skills.length > 0 && (
+                    {selectedJob.requirements.requiredCourses && selectedJob.requirements.requiredCourses.length > 0 && (
+                      <Box sx={{ mb: 1 }}>
+                        <Typography variant="body2">
+                          <strong>Required Courses:</strong>
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.5 }}>
+                          {selectedJob.requirements.requiredCourses.map((course, index) => (
+                            <Chip key={index} label={course} size="small" variant="outlined" />
+                          ))}
+                        </Box>
+                      </Box>
+                    )}
+                    {selectedJob.requirements.requiredSkills && selectedJob.requirements.requiredSkills.length > 0 && (
                       <Box sx={{ mb: 1 }}>
                         <Typography variant="body2">
                           <strong>Required Skills:</strong>
                         </Typography>
                         <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.5 }}>
-                          {selectedJob.requirements.skills.map((skill, index) => (
+                          {selectedJob.requirements.requiredSkills.map((skill, index) => (
                             <Chip key={index} label={skill} size="small" variant="outlined" />
                           ))}
                         </Box>
@@ -287,6 +299,11 @@ const Jobs = () => {
                         </Box>
                       </Box>
                     )}
+                    {selectedJob.requirements.requireReferences && (
+                      <Typography variant="body2" sx={{ mb: 1 }}>
+                        <strong>References:</strong> {selectedJob.requirements.minReferences || '2'} professional references required
+                      </Typography>
+                    )}
                   </Box>
                 </>
               )}
@@ -294,7 +311,7 @@ const Jobs = () => {
               {selectedJob.qualifications && selectedJob.qualifications.length > 0 && (
                 <>
                   <Typography variant="h6" gutterBottom>
-                    Qualifications
+                    Preferred Qualifications
                   </Typography>
                   <Box component="ul" sx={{ pl: 2, mb: 2 }}>
                     {selectedJob.qualifications.map((qual, index) => (
@@ -318,13 +335,26 @@ const Jobs = () => {
           <Button onClick={closeDialog}>Close</Button>
           <Button 
             variant="contained" 
-            onClick={() => applyForJob(selectedJob?.id)}
-            disabled={applyingJobId === selectedJob?.id}
+            onClick={() => {
+              setDetailsDialogOpen(false);
+              openApplicationForm(selectedJob);
+            }}
           >
-            {applyingJobId === selectedJob?.id ? 'Applying...' : 'Apply for this Job'}
+            Apply for this Job
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Job Application Form Dialog */}
+      {selectedJob && (
+        <JobApplicationForm
+          open={applicationDialogOpen}
+          onClose={closeDialog}
+          job={selectedJob}
+          onSuccess={handleApplicationSuccess}
+          onError={setError}
+        />
+      )}
     </Container>
   );
 };

@@ -49,9 +49,26 @@ const authorize = (...roles) => {
   };
 };
 
-// COMPLETELY SKIP EMAIL VERIFICATION FOR DEVELOPMENT
+// Email verification middleware
 const requireEmailVerification = (req, res, next) => {
-  // Skip email verification entirely
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  // Skip email verification for admin
+  if (req.user.role === 'admin') {
+    return next();
+  }
+
+  // Check if email is verified
+  if (!req.user.emailVerified) {
+    return res.status(403).json({ 
+      error: 'Please verify your email before accessing this feature.',
+      requiresVerification: true,
+      email: req.user.email
+    });
+  }
+
   next();
 };
 

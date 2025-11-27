@@ -16,26 +16,22 @@ exports.applyForCourse = async (req, res) => {
       });
     }
 
-    // Check if student exists
+    // Check if student exists and has complete profile
     const studentDoc = await db.collection('students').doc(studentId).get();
     if (!studentDoc.exists) {
-      // Create a basic student profile if it doesn't exist
-      await db.collection('students').doc(studentId).set({
-        userId: studentId,
-        profileCompleted: true, // Set to true automatically for testing
-        createdAt: new Date(),
-        updatedAt: new Date()
+      return res.status(400).json({ 
+        error: 'Student profile not found. Please complete your profile first.' 
       });
     }
 
-    const studentData = studentDoc.exists ? studentDoc.data() : { profileCompleted: true };
+    const studentData = studentDoc.data();
     
-    // TEMPORARILY DISABLE PROFILE COMPLETION CHECK FOR TESTING
-    // if (!studentData.profileCompleted) {
-    //   return res.status(400).json({ 
-    //     error: 'Please complete your student profile before applying for courses' 
-    //   });
-    // }
+    // Check if student has academic records
+    if (!studentData.education?.academicRecords || studentData.education.academicRecords.length === 0) {
+      return res.status(400).json({ 
+        error: 'Please add your academic records and calculate GPA before applying for courses' 
+      });
+    }
 
     // Check if course exists and get details
     const courseDoc = await db.collection('courses').doc(courseId).get();
@@ -97,6 +93,9 @@ exports.applyForCourse = async (req, res) => {
     const studentPersonalInfo = studentData.personalInfo || {};
     const studentName = `${studentPersonalInfo.firstName || ''} ${studentPersonalInfo.lastName || ''}`.trim() || req.user.email.split('@')[0] || 'Student';
 
+    // Evaluate student for course
+    const evaluation = await evaluateStudentForCourse(studentId, courseId);
+
     // Create application
     const applicationRef = await db.collection('applications').add({
       studentId,
@@ -106,6 +105,9 @@ exports.applyForCourse = async (req, res) => {
       studentName: studentName,
       studentEmail: req.user.email,
       institutionName: institution.name,
+      studentGPA: studentData.education?.gpa || 0,
+      studentCredits: studentData.education?.totalCredits || 0,
+      evaluation: evaluation,
       documents: documents || [],
       status: 'pending',
       appliedAt: new Date(),
@@ -116,8 +118,7 @@ exports.applyForCourse = async (req, res) => {
     // Update student's applications array
     await db.collection('students').doc(studentId).update({
       applications: FieldValue.arrayUnion(applicationRef.id),
-      updatedAt: new Date(),
-      profileCompleted: true // Ensure profile is marked as completed
+      updatedAt: new Date()
     });
 
     // Update institution's applications array
@@ -136,7 +137,8 @@ exports.applyForCourse = async (req, res) => {
 
     res.status(201).json({ 
       message: 'Application submitted successfully', 
-      applicationId: applicationRef.id 
+      applicationId: applicationRef.id,
+      evaluation: evaluation
     });
 
   } catch (error) {
@@ -148,7 +150,107 @@ exports.applyForCourse = async (req, res) => {
   }
 };
 
-// ... rest of your existing functions remain the same
+// Enhanced evaluation function
+const evaluateStudentForCourse = async (studentId, courseId) => {
+  try {
+    const studentDoc = await db.collection('students').doc(studentId).get();
+    const courseDoc = await db.collection('courses').doc(courseId).get();
+    
+    if (!studentDoc.exists || !courseDoc.exists) {
+      return { eligible: false, reason: 'Student or course not found' };
+    }
+
+    const student = studentDoc.data();
+    const course = courseDoc.data();
+    const requirements = course.requirements || {};
+
+    const evaluation = {
+      eligible: true,
+      meetsGPA: true,
+      meetsSubjectRequirements: true,
+      meetsCreditRequirements: true,
+      missingSubjects: [],
+      reasons: [],
+      studentGPA: student.education?.gpa || 0,
+      studentCredits: student.education?.totalCredits || 0
+    };
+
+    // Check GPA requirement
+    const studentGPA = student.education?.gpa || 0;
+    const requiredGPA = requirements.minimumGPA || 2.5;
+    
+    if (studentGPA < requiredGPA) {
+      evaluation.eligible = false;
+      evaluation.meetsGPA = false;
+      evaluation.reasons.push(`GPA ${studentGPA} is below required ${requiredGPA}`);
+    }
+
+    // Check subject requirements
+    const requiredSubjects = requirements.requiredSubjects || [];
+    const studentSubjects = student.education?.academicRecords || [];
+    
+    requiredSubjects.forEach(reqSubject => {
+      const studentSubject = studentSubjects.find(subj => 
+        subj.name.toLowerCase().includes(reqSubject.subject.toLowerCase()) ||
+        reqSubject.subject.toLowerCase().includes(subj.name.toLowerCase())
+      );
+
+      if (!studentSubject) {
+        evaluation.eligible = false;
+        evaluation.meetsSubjectRequirements = false;
+        evaluation.missingSubjects.push(reqSubject.subject);
+        evaluation.reasons.push(`Missing required subject: ${reqSubject.subject}`);
+      } else {
+        // Check if grade meets requirement
+        const studentGrade = convertGradeToPoints(studentSubject.grade);
+        const requiredGrade = convertGradeToPoints(reqSubject.minimumGrade || 'C');
+        
+        if (studentGrade < requiredGrade) {
+          evaluation.eligible = false;
+          evaluation.meetsSubjectRequirements = false;
+          evaluation.reasons.push(`Grade in ${reqSubject.subject} (${studentSubject.grade}) is below required (${reqSubject.minimumGrade || 'C'})`);
+        }
+      }
+    });
+
+    // Check credit requirements
+    const studentCredits = student.education?.totalCredits || 0;
+    const requiredCredits = requirements.minimumCredits || 0;
+    
+    if (studentCredits < requiredCredits) {
+      evaluation.eligible = false;
+      evaluation.meetsCreditRequirements = false;
+      evaluation.reasons.push(`Total credits ${studentCredits} is below required ${requiredCredits}`);
+    }
+
+    return evaluation;
+  } catch (error) {
+    console.error('Evaluation error:', error);
+    return { eligible: false, reason: 'Evaluation error' };
+  }
+};
+
+const convertGradeToPoints = (grade) => {
+  const gradeUpper = grade.toString().toUpperCase();
+  
+  if (gradeUpper.includes('A') || gradeUpper === 'A') return 4.0;
+  if (gradeUpper.includes('B') || gradeUpper === 'B') return 3.0;
+  if (gradeUpper.includes('C') || gradeUpper === 'C') return 2.0;
+  if (gradeUpper.includes('D') || gradeUpper === 'D') return 1.0;
+  
+  // Handle percentage grades
+  const percentage = parseFloat(grade);
+  if (!isNaN(percentage)) {
+    if (percentage >= 80) return 4.0;
+    if (percentage >= 70) return 3.0;
+    if (percentage >= 60) return 2.0;
+    if (percentage >= 50) return 1.0;
+  }
+  
+  return 0.0;
+};
+
+// ... rest of your existing functions (getCourseApplications, getApplicationById, updateApplicationStatus, handleAdmissionSeating, getStudentApplications) remain exactly the same
 exports.getCourseApplications = async (req, res) => {
   try {
     const { courseId } = req.params;

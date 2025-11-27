@@ -1,3 +1,4 @@
+// frontend/src/components/Navbar.js
 import React, { useState } from 'react';
 import {
   AppBar,
@@ -42,9 +43,9 @@ const Navbar = () => {
       case 'admin':
         return '/admin';
       case 'institution':
-        return '/institution';
+        return '/institution-dashboard';
       case 'company':
-        return '/company';
+        return '/company-dashboard';
       case 'student':
       default:
         return '/dashboard';
@@ -59,6 +60,14 @@ const Navbar = () => {
       case 'company':
         return (
           <Box sx={{ display: 'flex', gap: 1, mr: 2 }}>
+            <Button 
+              color="inherit" 
+              onClick={() => navigate('/company-dashboard')}
+              variant="outlined"
+              size="small"
+            >
+              Company Dashboard
+            </Button>
             <Button 
               color="inherit" 
               onClick={() => navigate('/company/jobs')}
@@ -77,6 +86,22 @@ const Navbar = () => {
             </Button>
             <Button 
               color="inherit" 
+              onClick={() => navigate('/resources')}
+              variant="outlined"
+              size="small"
+            >
+              Resources
+            </Button>
+            <Button 
+              color="inherit" 
+              onClick={() => navigate('/faq')}
+              variant="outlined"
+              size="small"
+            >
+              FAQ
+            </Button>
+            <Button 
+              color="inherit" 
               onClick={() => navigate('/profile')}
               variant="outlined"
               size="small"
@@ -89,6 +114,14 @@ const Navbar = () => {
       case 'student':
         return (
           <Box sx={{ display: 'flex', gap: 1, mr: 2 }}>
+            <Button 
+              color="inherit" 
+              onClick={() => navigate('/student-dashboard')}
+              variant="outlined"
+              size="small"
+            >
+              Student Dashboard
+            </Button>
             <Button 
               color="inherit" 
               onClick={() => navigate('/institutions')}
@@ -115,6 +148,22 @@ const Navbar = () => {
             </Button>
             <Button 
               color="inherit" 
+              onClick={() => navigate('/resources')}
+              variant="outlined"
+              size="small"
+            >
+              Resources
+            </Button>
+            <Button 
+              color="inherit" 
+              onClick={() => navigate('/faq')}
+              variant="outlined"
+              size="small"
+            >
+              FAQ
+            </Button>
+            <Button 
+              color="inherit" 
               onClick={() => navigate('/profile')}
               variant="outlined"
               size="small"
@@ -127,6 +176,14 @@ const Navbar = () => {
       case 'institution':
         return (
           <Box sx={{ display: 'flex', gap: 1, mr: 2 }}>
+            <Button 
+              color="inherit" 
+              onClick={() => navigate('/institution-dashboard')}
+              variant="outlined"
+              size="small"
+            >
+              Institution Dashboard
+            </Button>
             <Button 
               color="inherit" 
               onClick={() => navigate('/institution/faculties')}
@@ -153,6 +210,22 @@ const Navbar = () => {
             </Button>
             <Button 
               color="inherit" 
+              onClick={() => navigate('/resources')}
+              variant="outlined"
+              size="small"
+            >
+              Resources
+            </Button>
+            <Button 
+              color="inherit" 
+              onClick={() => navigate('/faq')}
+              variant="outlined"
+              size="small"
+            >
+              FAQ
+            </Button>
+            <Button 
+              color="inherit" 
               onClick={() => navigate('/profile')}
               variant="outlined"
               size="small"
@@ -165,7 +238,46 @@ const Navbar = () => {
       case 'admin':
         return (
           <Box sx={{ display: 'flex', gap: 1, mr: 2 }}>
-            {/* Removed all admin navigation buttons - now handled in sidebar */}
+            <Button 
+              color="inherit" 
+              onClick={() => navigate('/admin')}
+              variant="outlined"
+              size="small"
+            >
+              Admin Dashboard
+            </Button>
+            <Button 
+              color="inherit" 
+              onClick={() => navigate('/admin/institutions')}
+              variant="outlined"
+              size="small"
+            >
+              Manage Institutions
+            </Button>
+            <Button 
+              color="inherit" 
+              onClick={() => navigate('/admin/companies')}
+              variant="outlined"
+              size="small"
+            >
+              Manage Companies
+            </Button>
+            <Button 
+              color="inherit" 
+              onClick={() => navigate('/resources')}
+              variant="outlined"
+              size="small"
+            >
+              Resources
+            </Button>
+            <Button 
+              color="inherit" 
+              onClick={() => navigate('/faq')}
+              variant="outlined"
+              size="small"
+            >
+              FAQ
+            </Button>
             <Button 
               color="inherit" 
               onClick={() => navigate('/profile')}
@@ -228,11 +340,29 @@ const Navbar = () => {
               onClose={handleClose}
             >
               <MenuItem onClick={handleProfile}>Profile</MenuItem>
+              <MenuItem onClick={() => navigate('/about')}>About</MenuItem>
+              <MenuItem onClick={() => navigate('/testimonials')}>Testimonials</MenuItem>
+              <MenuItem onClick={() => navigate('/contact')}>Contact</MenuItem>
               <MenuItem onClick={handleLogout}>Logout</MenuItem>
             </Menu>
           </Box>
         ) : (
           <Box>
+            <Button color="inherit" onClick={() => navigate('/about')}>
+              About
+            </Button>
+            <Button color="inherit" onClick={() => navigate('/resources')}>
+              Resources
+            </Button>
+            <Button color="inherit" onClick={() => navigate('/testimonials')}>
+              Testimonials
+            </Button>
+            <Button color="inherit" onClick={() => navigate('/faq')}>
+              FAQ
+            </Button>
+            <Button color="inherit" onClick={() => navigate('/contact')}>
+              Contact
+            </Button>
             <Button color="inherit" onClick={() => navigate('/login')}>
               Login
             </Button>

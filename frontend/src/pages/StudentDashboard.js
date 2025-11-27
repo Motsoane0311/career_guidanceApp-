@@ -14,6 +14,7 @@ import {
   Assignment as AssignmentIcon,
   CheckCircle as CheckCircleIcon,
   Pending as PendingIcon,
+  Grade as GradeIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 
@@ -25,9 +26,14 @@ const StudentDashboard = () => {
     stats: {
       applications: currentUser?.profile?.applications?.length || 0,
       pendingApplications: currentUser?.profile?.applications?.filter(app => app.status === 'pending')?.length || 0,
-      approvedApplications: currentUser?.profile?.applications?.filter(app => app.status === 'approved')?.length || 0,
+      approvedApplications: currentUser?.profile?.applications?.filter(app => app.status === 'approved' || app.status === 'admitted')?.length || 0,
       institutionsApplied: currentUser?.profile?.applications?.filter(app => app.type === 'institution')?.length || 0,
       jobsApplied: currentUser?.profile?.applications?.filter(app => app.type === 'job')?.length || 0
+    },
+    academic: {
+      gpa: currentUser?.profile?.education?.gpa || 0,
+      totalCredits: currentUser?.profile?.education?.totalCredits || 0,
+      subjects: currentUser?.profile?.education?.academicRecords?.length || 0
     }
   };
 
@@ -97,17 +103,17 @@ const StudentDashboard = () => {
               <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <Box>
                   <Typography color="textSecondary" gutterBottom variant="overline">
-                    Approved
+                    GPA Score
                   </Typography>
                   <Typography variant="h4" component="div" sx={{ fontWeight: 'bold' }}>
-                    {data.stats.approvedApplications}
+                    {data.academic.gpa.toFixed(2)}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
-                    Successful applications
+                    {data.academic.totalCredits} credits
                   </Typography>
                 </Box>
-                <Box sx={{ color: 'success.main', mt: 1 }}>
-                  <CheckCircleIcon fontSize="large" />
+                <Box sx={{ color: 'info.main', mt: 1 }}>
+                  <GradeIcon fontSize="large" />
                 </Box>
               </Box>
             </CardContent>
@@ -119,16 +125,16 @@ const StudentDashboard = () => {
               <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <Box>
                   <Typography color="textSecondary" gutterBottom variant="overline">
-                    Institutions
+                    Subjects
                   </Typography>
                   <Typography variant="h4" component="div" sx={{ fontWeight: 'bold' }}>
-                    {data.stats.institutionsApplied}
+                    {data.academic.subjects}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
-                    Applied to
+                    Completed
                   </Typography>
                 </Box>
-                <Box sx={{ color: 'info.main', mt: 1 }}>
+                <Box sx={{ color: 'success.main', mt: 1 }}>
                   <SchoolIcon fontSize="large" />
                 </Box>
               </Box>
@@ -138,36 +144,47 @@ const StudentDashboard = () => {
       </Grid>
 
       <Grid container spacing={3}>
-        {/* Profile Completion */}
+        {/* Academic Summary */}
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Profile Completion
+              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <SchoolIcon /> Academic Summary
               </Typography>
               
               <Box sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2">Personal Information</Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="body2">Overall GPA</Typography>
                   <Chip 
-                    label={currentUser?.profile?.personalInfo ? "Complete" : "Incomplete"} 
-                    color={currentUser?.profile?.personalInfo ? "success" : "warning"}
+                    label={data.academic.gpa.toFixed(2)} 
+                    color={
+                      data.academic.gpa >= 3.5 ? 'success' : 
+                      data.academic.gpa >= 3.0 ? 'warning' : 'error'
+                    }
                     size="small"
                   />
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2">Academic Records</Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="body2">Total Credits</Typography>
                   <Chip 
-                    label={currentUser?.profile?.transcriptsUploaded ? "Uploaded" : "Pending"} 
-                    color={currentUser?.profile?.transcriptsUploaded ? "success" : "warning"}
+                    label={data.academic.totalCredits} 
+                    variant="outlined"
+                    size="small"
+                  />
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="body2">Subjects Completed</Typography>
+                  <Chip 
+                    label={data.academic.subjects} 
+                    variant="outlined"
                     size="small"
                   />
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2">Career Preferences</Typography>
+                  <Typography variant="body2">Academic Status</Typography>
                   <Chip 
-                    label={currentUser?.profile?.careerPreferences ? "Set" : "Not Set"} 
-                    color={currentUser?.profile?.careerPreferences ? "success" : "default"}
+                    label={data.academic.gpa >= 2.0 ? 'Good Standing' : 'Needs Improvement'} 
+                    color={data.academic.gpa >= 2.0 ? 'success' : 'error'}
                     size="small"
                   />
                 </Box>
@@ -176,12 +193,12 @@ const StudentDashboard = () => {
           </Card>
         </Grid>
 
-        {/* Quick Stats */}
+        {/* Application Status */}
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Application Status
+              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <WorkIcon /> Application Status
               </Typography>
               
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -214,21 +231,75 @@ const StudentDashboard = () => {
           </Card>
         </Grid>
 
-        {/* Recent Activity */}
+        {/* Profile Completion */}
         <Grid item xs={12}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Getting Started
+                Profile Completion Status
+              </Typography>
+              
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1 }}>
+                    <Typography variant="body2">Personal Information</Typography>
+                    <Chip 
+                      label={currentUser?.profile?.personalInfo ? "Complete" : "Incomplete"} 
+                      color={currentUser?.profile?.personalInfo ? "success" : "warning"}
+                      size="small"
+                    />
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1 }}>
+                    <Typography variant="body2">Academic Records</Typography>
+                    <Chip 
+                      label={currentUser?.profile?.education?.academicRecords ? "Complete" : "Incomplete"} 
+                      color={currentUser?.profile?.education?.academicRecords ? "success" : "warning"}
+                      size="small"
+                    />
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1 }}>
+                    <Typography variant="body2">Work Experience</Typography>
+                    <Chip 
+                      label={currentUser?.profile?.workExperience ? "Added" : "Not Added"} 
+                      color={currentUser?.profile?.workExperience ? "success" : "default"}
+                      size="small"
+                    />
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1 }}>
+                    <Typography variant="body2">References</Typography>
+                    <Chip 
+                      label={currentUser?.profile?.references ? "Added" : "Not Added"} 
+                      color={currentUser?.profile?.references ? "success" : "default"}
+                      size="small"
+                    />
+                  </Box>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Quick Actions */}
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Ready to Take the Next Step?
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                Welcome to your dashboard! Use the navigation bar above to:
+                Your academic profile is looking great! Here's what you can do next:
               </Typography>
               <ul>
-                <li>Browse and apply to educational institutions</li>
-                <li>Explore job opportunities from partner companies</li>
-                <li>Track your application status</li>
-                <li>Update your profile and academic records</li>
+                <li>Apply to educational institutions with your strong GPA of {data.academic.gpa.toFixed(2)}</li>
+                <li>Explore job opportunities that match your academic background</li>
+                <li>Add work experience and references to strengthen your job applications</li>
+                <li>Track your application status and receive admission decisions</li>
               </ul>
             </CardContent>
           </Card>

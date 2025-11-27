@@ -3,8 +3,8 @@ const bcrypt = require('bcryptjs');
 
 const seedAdmin = async () => {
   try {
-    const adminEmail = 'admin@careerguidance.com';
-    const adminPassword = 'Admin123!'; // Strong password
+    const adminEmail = 'mohAdmin@gmail.com';  // UPDATED
+    const adminPassword = '123456';           // UPDATED
 
     // Check if admin already exists
     const adminUsers = await db.collection('users')

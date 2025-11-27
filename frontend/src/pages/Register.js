@@ -12,9 +12,14 @@ import {
   Select,
   MenuItem,
   Link,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { authAPI } from '../services/api';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -27,6 +32,10 @@ const Register = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [verificationDialogOpen, setVerificationDialogOpen] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
 
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -67,15 +76,42 @@ const Register = () => {
     const result = await register(userData);
 
     if (result.success) {
-      setSuccess('Registration successful! You can now login.');
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+      if (result.data.requiresVerification) {
+        setPendingEmail(formData.email);
+        setVerificationDialogOpen(true);
+        setSuccess('Registration successful! Please check your email for verification link.');
+      } else {
+        setSuccess('Registration successful! You can now login.');
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      }
     } else {
       setError(result.error);
     }
 
     setLoading(false);
+  };
+
+  const handleResendVerification = async () => {
+    setResendLoading(true);
+    setResendMessage('');
+    
+    try {
+      const response = await authAPI.resendVerification({ email: pendingEmail });
+      setResendMessage(response.data.message);
+    } catch (error) {
+      setResendMessage(error.response?.data?.error || 'Failed to resend verification email');
+    }
+    
+    setResendLoading(false);
+  };
+
+  const handleCloseDialog = () => {
+    setVerificationDialogOpen(false);
+    setPendingEmail('');
+    setResendMessage('');
+    navigate('/login');
   };
 
   return (
@@ -184,6 +220,32 @@ const Register = () => {
           </Box>
         </Paper>
       </Box>
+
+      {/* Email Verification Dialog */}
+      <Dialog open={verificationDialogOpen} onClose={handleCloseDialog}>
+        <DialogTitle>Verify Your Email</DialogTitle>
+        <DialogContent>
+          <Typography>
+            We've sent a verification link to <strong>{pendingEmail}</strong>. 
+            Please check your email and click the verification link to activate your account.
+          </Typography>
+          {resendMessage && (
+            <Alert severity={resendMessage.includes('successfully') ? 'success' : 'error'} sx={{ mt: 2 }}>
+              {resendMessage}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>Go to Login</Button>
+          <Button 
+            onClick={handleResendVerification} 
+            disabled={resendLoading}
+            variant="contained"
+          >
+            {resendLoading ? 'Sending...' : 'Resend Verification Email'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };
