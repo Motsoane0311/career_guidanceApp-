@@ -4,20 +4,15 @@ console.log('🔄 Initializing Firebase...');
 
 try {
   let serviceAccount;
-  
-  // Check if we're in production (Render) with environment variables
+
+  // Use environment variables for production (Render)
   if (process.env.FIREBASE_PRIVATE_KEY) {
     console.log('📁 Using environment variables for Firebase...');
-    console.log('🔑 FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID);
-    console.log('🔑 FIREBASE_PRIVATE_KEY exists:', !!process.env.FIREBASE_PRIVATE_KEY);
-    console.log('🔑 FIREBASE_PRIVATE_KEY length:', process.env.FIREBASE_PRIVATE_KEY?.length);
-    console.log('🔑 FIREBASE_CLIENT_EMAIL:', process.env.FIREBASE_CLIENT_EMAIL);
-    
     serviceAccount = {
       type: "service_account",
-      project_id: process.env.FIREBASE_PROJECT_ID || "careerguidanceplatform-14ca1",
+      project_id: process.env.FIREBASE_PROJECT_ID,
       private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-      private_key: process.env.FIREBASE_PRIVATE_KEY,
+      private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'), // Fix for newline
       client_email: process.env.FIREBASE_CLIENT_EMAIL,
       client_id: process.env.FIREBASE_CLIENT_ID,
       auth_uri: "https://accounts.google.com/o/oauth2/auth",
@@ -26,7 +21,7 @@ try {
       client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL
     };
   } else {
-    // Use local service account file for development
+    // Local development
     console.log('📁 Using local service account file...');
     serviceAccount = require('./firebase-service-account.json');
   }
@@ -40,15 +35,15 @@ try {
   });
 
   console.log('✅ Firebase initialized successfully');
-  
+
   const db = admin.firestore();
   const auth = admin.auth();
-  
+
   console.log('🔥 Firestore connected');
   console.log('🔑 Auth service ready');
 
   module.exports = { admin, db, auth };
-  
+
 } catch (error) {
   console.error('❌ Firebase initialization failed:', error.message);
   throw error;

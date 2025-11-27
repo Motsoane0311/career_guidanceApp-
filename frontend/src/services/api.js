@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+// Use environment variable for production, fallback to localhost
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api';
 
 // Create axios instance
 const api = axios.create({
@@ -19,9 +20,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 // Handle responses
@@ -40,17 +39,14 @@ api.interceptors.response.use(
 export const authAPI = {
   register: (userData) => api.post('/auth/register', userData),
   login: (credentials) => api.post('/auth/login', credentials),
-  getProfile: () => api.get('/auth/profile'), // FIXED: Changed from '/me' to '/profile'
-  verifyEmail: (token) => {
-    console.log('🔗 Sending token to backend:', token);
-    return api.post('/auth/verify-email', { token });
-  },
+  getProfile: () => api.get('/auth/profile'),
+  verifyEmail: (token) => api.post('/auth/verify-email', { token }),
   resendVerification: (email) => api.post('/auth/resend-verification', { email }),
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
   resetPassword: (data) => api.post('/auth/reset-password', data),
 };
 
-// ... rest of your API exports remain the same
+// Students API
 export const studentsAPI = {
   updateProfile: (data) => api.put('/students/profile', data),
   uploadTranscripts: (data) => api.post('/students/transcripts', data),
@@ -58,6 +54,7 @@ export const studentsAPI = {
   getJobApplications: () => api.get('/students/job-applications'),
 };
 
+// Companies API
 export const companiesAPI = {
   updateProfile: (data) => api.put('/companies/profile', data),
   getProfile: () => api.get('/companies/profile'),
@@ -68,6 +65,7 @@ export const companiesAPI = {
     api.put(`/companies/applications/${applicationId}/status`, { status }),
 };
 
+// Jobs API
 export const jobsAPI = {
   getJobs: () => api.get('/jobs'),
   createJob: (data) => api.post('/jobs', data),
@@ -76,6 +74,7 @@ export const jobsAPI = {
   getJobApplicants: (jobId) => api.get(`/jobs/${jobId}/applicants`),
 };
 
+// Applications API
 export const applicationsAPI = {
   applyForCourse: (data) => api.post('/applications/apply/course', data),
   applyForJob: (jobId, data) => api.post(`/applications/apply/job/${jobId}`, data),
@@ -85,15 +84,14 @@ export const applicationsAPI = {
   updateApplicationStatus: (applicationId, status) => api.put(`/applications/${applicationId}/status`, { status }),
 };
 
+// Admin API
 export const adminAPI = {
   getDashboardStats: () => api.get('/admin/dashboard'),
   getAllUsers: () => api.get('/admin/users'),
   getAllInstitutions: () => api.get('/admin/institutions'),
   getAllCompanies: () => api.get('/admin/companies'),
-  manageCompanyStatus: (companyId, status) => 
-    api.put(`/admin/companies/${companyId}/status`, { status }),
-  manageInstitutionStatus: (institutionId, status) =>
-    api.put(`/admin/institutions/${institutionId}/status`, { status }),
+  manageCompanyStatus: (companyId, status) => api.put(`/admin/companies/${companyId}/status`, { status }),
+  manageInstitutionStatus: (institutionId, status) => api.put(`/admin/institutions/${institutionId}/status`, { status }),
   addInstitution: (data) => api.post('/admin/institutions', data),
   addFaculty: (data) => api.post('/admin/faculties', data),
   addCourse: (data) => api.post('/admin/courses', data),
@@ -103,17 +101,18 @@ export const adminAPI = {
   getSystemReports: (params) => api.get('/admin/reports', { params }),
 };
 
+// Institutions API
 export const institutionsAPI = {
   updateProfile: (data) => api.put('/institutions/profile', data),
   addFaculty: (data) => api.post('/institutions/faculties', data),
   addCourse: (data) => api.post('/institutions/courses', data),
   getApplications: () => api.get('/institutions/applications'),
-  updateApplicationStatus: (applicationId, status) => 
-    api.put(`/institutions/applications/${applicationId}/status`, { status }),
+  updateApplicationStatus: (applicationId, status) => api.put(`/institutions/applications/${applicationId}/status`, { status }),
   getFaculties: () => api.get('/institutions/faculties'),
   getCourses: () => api.get('/institutions/courses'),
 };
 
+// Public API
 export const publicAPI = {
   getInstitutions: () => api.get('/institutions/public'),
 };
